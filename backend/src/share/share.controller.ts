@@ -36,4 +36,18 @@ export class ShareController {
   resolveItem(@Param('token') token: string) {
     return this.share.resolveItem(token);
   }
+
+  @Post('game-item/:itemId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a public share link for a single game card' })
+  shareGameItem(@CurrentUser('id') userId: string, @Param('itemId') itemId: string) {
+    return this.share.createGameItemShare(userId, itemId);
+  }
+
+  @Get('game-item/:token')
+  @ApiOperation({ summary: 'Resolve a public single-game-card share link (no auth required)' })
+  resolveGameItem(@Param('token') token: string) {
+    return this.share.resolveGameItem(token);
+  }
 }

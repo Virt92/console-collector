@@ -16,6 +16,20 @@ interface SeedConsole {
   aliases?: string[];
 }
 
+interface SeedGame {
+  slug: string;
+  title: string;
+  platforms: string[];
+  releaseYear?: number;
+  publisher?: string;
+  developer?: string;
+  genres?: string[];
+  coverUrl?: string;
+  summary?: string;
+  rarity: keyof typeof Rarity;
+  aliases?: string[];
+}
+
 interface SeedAchievement {
   key: string;
   name: string;
@@ -69,6 +83,42 @@ async function main() {
         aliases: c.aliases ?? [],
       },
     });
+  }
+
+  const gamesPath = path.resolve(__dirname, '../../data/games.json');
+  if (fs.existsSync(gamesPath)) {
+    const games = JSON.parse(fs.readFileSync(gamesPath, 'utf-8')) as SeedGame[];
+    console.log(`Seeding ${games.length} games...`);
+    for (const g of games) {
+      await prisma.game.upsert({
+        where: { slug: g.slug },
+        update: {
+          title: g.title,
+          platforms: g.platforms,
+          releaseYear: g.releaseYear,
+          publisher: g.publisher,
+          developer: g.developer,
+          genres: g.genres ?? [],
+          coverUrl: g.coverUrl,
+          summary: g.summary,
+          rarity: Rarity[g.rarity],
+          aliases: g.aliases ?? [],
+        },
+        create: {
+          slug: g.slug,
+          title: g.title,
+          platforms: g.platforms,
+          releaseYear: g.releaseYear,
+          publisher: g.publisher,
+          developer: g.developer,
+          genres: g.genres ?? [],
+          coverUrl: g.coverUrl,
+          summary: g.summary,
+          rarity: Rarity[g.rarity],
+          aliases: g.aliases ?? [],
+        },
+      });
+    }
   }
 
   console.log(`Seeding ${ACHIEVEMENTS.length} achievements...`);

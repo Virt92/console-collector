@@ -4,6 +4,8 @@ import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.virt92.consolecollector.data.model.CreateCollectionItemRequest
+import com.virt92.consolecollector.data.model.CreateGameItemRequest
+import com.virt92.consolecollector.data.model.RecognizeGameResponse
 import com.virt92.consolecollector.data.model.RecognizeResponse
 import com.virt92.consolecollector.di.AppContainer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,10 +14,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class ScanMode { CONSOLE, GAME }
+
 data class ScanUiState(
+    val mode: ScanMode = ScanMode.CONSOLE,
     val photoBytes: List<ByteArray> = emptyList(),
     val recognizing: Boolean = false,
     val recognized: RecognizeResponse? = null,
+    val recognizedGame: RecognizeGameResponse? = null,
     val saving: Boolean = false,
     val saved: Boolean = false,
     val error: String? = null,
@@ -25,8 +31,8 @@ class ScanViewModel(private val container: AppContainer) : ViewModel() {
     private val _state = MutableStateFlow(ScanUiState())
     val state: StateFlow<ScanUiState> = _state.asStateFlow()
 
-    fun reset() {
-        _state.value = ScanUiState()
+    fun reset(mode: ScanMode = ScanMode.CONSOLE) {
+        _state.value = ScanUiState(mode = mode)
     }
 
     fun addPhoto(bytes: ByteArray) {
@@ -43,13 +49,29 @@ class ScanViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch {
             _state.update { it.copy(recognizing = true, error = null) }
             val dataUris = photos.map { bytesToDataUri(it) }
-            runCatching { container.repository.recognize(dataUris) }
-                .onSuccess { res -> _state.update { it.copy(recognizing = false, recognized = res) } }
-                .onFailure { e -> _state.update { it.copy(recognizing = false, error = e.message) } }
+            when (_state.value.mode) {
+                ScanMode.CONSOLE -> {
+                    runCatching { container.repository.recognize(dataUris) }
+                        .onSuccess { res -> _state.update { it.copy(recognizing = false, recognized = res) } }
+                        .onFailure { e -> _state.update { it.copy(recognizing = false, error = e.message) } }
+                }
+                ScanMode.GAME -> {
+                    runCatching { container.repository.recognizeGame(dataUris) }
+                        .onSuccess { res -> _state.update { it.copy(recognizing = false, recognizedGame = res) } }
+                        .onFailure { e -> _state.update { it.copy(recognizing = false, error = e.message) } }
+                }
+            }
         }
     }
 
     fun confirmAndAdd(onDone: () -> Unit) {
+        when (_state.value.mode) {
+            ScanMode.CONSOLE -> confirmConsole(onDone)
+            ScanMode.GAME -> confirmGame(onDone)
+        }
+    }
+
+    private fun confirmConsole(onDone: () -> Unit) {
         val recognized = _state.value.recognized ?: return
         val consoleModelId = recognized.consoleModelId
         if (consoleModelId == null) {
@@ -64,6 +86,36 @@ class ScanViewModel(private val container: AppContainer) : ViewModel() {
                 container.repository.addToCollection(
                     CreateCollectionItemRequest(
                         consoleModelId = consoleModelId,
+                        recognized = recognized.details,
+                    ),
+                )
+            }
+                .onSuccess {
+                    _state.update { it.copy(saving = false, saved = true) }
+                    onDone()
+                }
+                .onFailure { e -> _state.update { it.copy(saving = false, error = e.message) } }
+        }
+    }
+
+    private fun confirmGame(onDone: () -> Unit) {
+        val recognized = _state.value.recognizedGame ?: return
+        val gameId = recognized.gameId
+        if (gameId == null) {
+            _state.update {
+                it.copy(error = "We couldn't match this to a known game — try clearer photos or pick from the catalog manually.")
+            }
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(saving = true, error = null) }
+            runCatching {
+                container.repository.addGameItem(
+                    CreateGameItemRequest(
+                        gameId = gameId,
+                        platformSlug = recognized.platformSlug,
+                        edition = recognized.edition,
+                        region = recognized.region,
                         recognized = recognized.details,
                     ),
                 )

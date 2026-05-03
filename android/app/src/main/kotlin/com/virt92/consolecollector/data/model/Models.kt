@@ -121,3 +121,81 @@ data class ShareLinkResponse(
     val token: String,
     val url: String,
 )
+
+@Serializable
+data class GameDto(
+    val id: String,
+    val slug: String,
+    val title: String,
+    val platforms: List<String> = emptyList(),
+    val releaseYear: Int? = null,
+    val publisher: String? = null,
+    val developer: String? = null,
+    val genres: List<String> = emptyList(),
+    val coverUrl: String? = null,
+    val summary: String? = null,
+    val rarity: Rarity = Rarity.COMMON,
+    val aliases: List<String> = emptyList(),
+)
+
+@Serializable
+data class GameItemDto(
+    val id: String,
+    val userId: String,
+    val gameId: String,
+    val platformSlug: String,
+    val edition: String? = null,
+    val region: String? = null,
+    val status: ItemStatus,
+    val notes: String? = null,
+    val photos: List<String> = emptyList(),
+    val recognized: JsonElement? = null,
+    val createdAt: String,
+    val updatedAt: String,
+    val game: GameDto,
+)
+
+@Serializable
+data class RecognizeGameResponse(
+    val title: String,
+    val slug: String,
+    val gameId: String? = null,
+    val coverUrl: String? = null,
+    val platformSlug: String,
+    val platformName: String? = null,
+    val region: String? = null,
+    val edition: String? = null,
+    val rarity: Rarity,
+    val confidence: Double,
+    val reasoning: String,
+    val details: JsonElement? = null,
+)
+
+@Serializable
+data class CreateGameItemRequest(
+    val gameId: String,
+    val platformSlug: String,
+    val edition: String? = null,
+    val region: String? = null,
+    val status: ItemStatus = ItemStatus.OWNED,
+    val notes: String? = null,
+    val photos: List<String> = emptyList(),
+    val recognized: JsonElement? = null,
+)
+
+@Serializable
+data class UpdateGameItemRequest(
+    val status: ItemStatus? = null,
+    val edition: String? = null,
+    val region: String? = null,
+    val notes: String? = null,
+)
+
+@Serializable
+data class GameStats(
+    val total: Int,
+    val uniqueGames: Int,
+    val catalogSize: Int,
+    val byRarity: Map<String, Int>,
+    val byPlatform: Map<String, Int> = emptyMap(),
+)
