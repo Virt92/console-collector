@@ -1,0 +1,43 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN apk add --no-cache openssl
+
+FROM base AS deps
+COPY backend/package.json backend/package-lock.json* ./
+RUN --mount=type=cache,target=/root/.npm npm ci
+
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY backend/ .
+RUN npx prisma generate
+RUN npm run build
+
+FROM base AS runner
+ENV NODE_ENV=production
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY backend/package.json ./
+# data/ is referenced from the seed script as ../../data relative to prisma/seed.ts.
+# With prisma/ mounted at /app/prisma, ../../data resolves to /data (filesystem root).
+COPY data /data
+COPY <<'EOF' /app/entrypoint.sh
+#!/bin/sh
+set -e
+# Append ?pgbouncer=true so Prisma disables prepared statements (Fly MPG runs pgbouncer in transaction mode).
+case "$DATABASE_URL" in
+  *pgbouncer=*) ;;
+  *\?*) export DATABASE_URL="${DATABASE_URL}&pgbouncer=true" ;;
+  *) export DATABASE_URL="${DATABASE_URL}?pgbouncer=true" ;;
+esac
+echo "[entrypoint] running prisma db push..."
+npx prisma db push --accept-data-loss --skip-generate
+echo "[entrypoint] running seed..."
+npm run seed || echo "[entrypoint] seed failed (continuing — likely already seeded)"
+echo "[entrypoint] starting Nest..."
+exec node dist/main.js
+EOF
+RUN chmod +x /app/entrypoint.sh
+EXPOSE 3000
+CMD ["/app/entrypoint.sh"]
