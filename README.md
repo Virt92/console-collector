@@ -34,6 +34,28 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties
 
 The Android emulator reaches the host machine at `http://10.0.2.2:3000`. To override (e.g. for a real device on LAN), put `API_BASE_URL=http://192.168.x.x:3000/` in `android/local.properties`.
 
+## Deploying to Fly.io
+
+The repo includes a [Fly.io](https://fly.io) deploy config (`fly.toml` + `Dockerfile.fly`) that provisions a single backend machine in Frankfurt (`fra`) and expects an attached Managed Postgres cluster.
+
+```bash
+flyctl apps create my-console-collector            # pick a unique name
+flyctl mpg create --name my-cc-db --region fra --plan Basic --volume-size 10
+flyctl mpg attach <cluster-id> --app my-console-collector   # sets DATABASE_URL
+flyctl secrets set --app my-console-collector --stage \
+  FAL_API_KEY="..." JWT_SECRET="$(openssl rand -hex 32)"
+flyctl deploy --app my-console-collector --remote-only
+```
+
+The container's entrypoint runs `prisma db push` + `npm run seed` on every boot (idempotent — uses upsert), then starts Nest.
+
+Then build the Android APK against the public URL:
+
+```bash
+echo "API_BASE_URL=https://my-console-collector.fly.dev/" >> android/local.properties
+cd android && ./gradlew clean assembleDebug
+```
+
 ## Backend API surface
 
 Swagger UI is auto-generated at `http://localhost:3000/api/docs`.
