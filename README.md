@@ -8,11 +8,12 @@ Monorepo with three top-level concerns:
 
 | Path | Stack | Purpose |
 | --- | --- | --- |
-| `backend/` | NestJS + Prisma + PostgreSQL + JWT | REST API: auth, console catalog, collection, vision recognition, sharing. |
+| `backend/` | NestJS + Prisma + PostgreSQL + JWT | REST API: auth, console catalog, game catalog, collection, vision recognition, sharing. |
 | `android/` | Kotlin + Jetpack Compose + CameraX + Retrofit | Native Android client. |
 | `data/consoles.json` | Hand-curated catalog | 80+ console models (Sony / Microsoft / Nintendo / Sega / Atari / handhelds), 1972 → 2025, with rarity tiers. |
+| `data/games.json` | Hand-curated catalog | 70+ games across major franchises (Halo, Zelda, Mario, Final Fantasy, Metal Gear, etc.) with rarity tiers and platform tags. |
 
-Vision recognition is performed via [fal.ai](https://fal.ai) (any-llm vision endpoint, defaults to Gemini Flash 1.5). The backend builds a system prompt asking the model to identify the console and return structured JSON, then fuzzy-matches the result against the catalog.
+Vision recognition is performed via [fal.ai](https://fal.ai) (any-llm vision endpoint, defaults to Gemini Flash 1.5). The backend builds a system prompt asking the model to identify the console (or game disc/cartridge/box) and return structured JSON, then fuzzy-matches the result against the local catalog. If [IGDB](https://api-docs.igdb.com/) credentials (`IGDB_CLIENT_ID` + `IGDB_CLIENT_SECRET`) are set, unmatched game titles are imported from IGDB on demand (cover art, release year, summary).
 
 ## Running locally
 
@@ -45,15 +46,25 @@ Swagger UI is auto-generated at `http://localhost:3000/api/docs`.
 | `PATCH`| `/api/users/me` | JWT | Update profile fields. |
 | `GET`  | `/api/consoles` | – | Catalog (`?manufacturer=`, `?search=`). |
 | `POST` | `/api/recognize/console` | JWT | Body: `{ images: [data-uri or url, …] }`. Returns recognized console + suggested catalog id. |
-| `GET`  | `/api/collection` | JWT | User's items. |
-| `POST` | `/api/collection` | JWT | Add an item. |
+| `POST` | `/api/recognize/game` | JWT | Same body shape. Returns recognized game title, platform, region, edition + suggested catalog id (with on-demand IGDB import when configured). |
+| `GET`  | `/api/games` | – | Game catalog (`?platform=`, `?search=`). |
+| `GET`  | `/api/games/:slug` | – | Single game lookup. |
+| `GET`  | `/api/collection` | JWT | User's console items. |
+| `POST` | `/api/collection` | JWT | Add a console item. |
 | `PATCH`| `/api/collection/:id` | JWT | Update status / notes. |
 | `DELETE`| `/api/collection/:id` | JWT | Remove. |
 | `GET`  | `/api/collection/stats` | JWT | Totals + rarity breakdown + catalog completion. |
-| `POST` | `/api/share/collection` | JWT | Generate public link to your collection. |
-| `POST` | `/api/share/item/:itemId` | JWT | Generate public link to a single card. |
-| `GET`  | `/api/share/collection/:token` | – | Public resolve. |
-| `GET`  | `/api/share/item/:token` | – | Public resolve. |
+| `GET`  | `/api/collection/games` | JWT | User's game items. |
+| `POST` | `/api/collection/games` | JWT | Add a game item (`gameId`, `platformSlug`, optional `edition`, `region`). |
+| `PATCH`| `/api/collection/games/:id` | JWT | Update status / edition / region / notes. |
+| `DELETE`| `/api/collection/games/:id` | JWT | Remove. |
+| `GET`  | `/api/collection/games/stats` | JWT | Game totals + rarity / platform breakdown. |
+| `POST` | `/api/share/collection` | JWT | Generate public link to your collection (consoles + games). |
+| `POST` | `/api/share/item/:itemId` | JWT | Generate public link to a single console card. |
+| `POST` | `/api/share/game-item/:itemId` | JWT | Generate public link to a single game card. |
+| `GET`  | `/api/share/collection/:token` | – | Public resolve (returns owner, items, games). |
+| `GET`  | `/api/share/item/:token` | – | Public resolve (single console card). |
+| `GET`  | `/api/share/game-item/:token` | – | Public resolve (single game card). |
 
 ## Card rarity → visual treatment
 
@@ -69,7 +80,6 @@ See `android/app/src/main/kotlin/com/virt92/consolecollector/ui/collection/Conso
 
 ## Roadmap (post-MVP)
 
-- Disc / game scanning with IGDB integration.
 - Achievement unlock logic + UI.
 - Marketplace (`FOR_SALE`, `FOR_TRADE`, `GIVING_AWAY` already modelled in DB).
 - Friend graph + collection comparison.

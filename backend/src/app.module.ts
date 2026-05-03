@@ -5,6 +5,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ConsolesModule } from './consoles/consoles.module';
 import { CollectionModule } from './collection/collection.module';
+import { GamesModule } from './games/games.module';
+import { GameItemsModule } from './game-items/game-items.module';
 import { RecognizeModule } from './recognize/recognize.module';
 import { ShareModule } from './share/share.module';
 import { HealthController } from './health/health.controller';
@@ -17,6 +19,8 @@ import { HealthController } from './health/health.controller';
     UsersModule,
     ConsolesModule,
     CollectionModule,
+    GamesModule,
+    GameItemsModule,
     RecognizeModule,
     ShareModule,
   ],

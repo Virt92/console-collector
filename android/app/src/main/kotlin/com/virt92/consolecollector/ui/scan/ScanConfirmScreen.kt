@@ -24,11 +24,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.virt92.consolecollector.data.model.ConsoleModelDto
+import com.virt92.consolecollector.data.model.GameDto
 import com.virt92.consolecollector.data.model.Rarity
 import com.virt92.consolecollector.ui.collection.ConsoleCard
+import com.virt92.consolecollector.ui.collection.GameCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +43,7 @@ fun ScanConfirmScreen(
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
-        if (state.recognized == null && !state.recognizing) {
+        if (state.recognized == null && state.recognizedGame == null && !state.recognizing) {
             viewModel.recognize()
         }
     }
@@ -67,12 +70,12 @@ fun ScanConfirmScreen(
         ) {
             when {
                 state.recognizing -> {
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(end = 12.dp))
                         Text("Identifying via vision model…")
                     }
                 }
-                state.recognized != null -> {
+                state.mode == ScanMode.CONSOLE && state.recognized != null -> {
                     val r = state.recognized!!
                     val previewModel = ConsoleModelDto(
                         id = r.consoleModelId ?: "preview",
@@ -104,12 +107,62 @@ fun ScanConfirmScreen(
                         )
                     }
                 }
+                state.mode == ScanMode.GAME && state.recognizedGame != null -> {
+                    val r = state.recognizedGame!!
+                    val previewGame = GameDto(
+                        id = r.gameId ?: "preview",
+                        slug = r.slug,
+                        title = r.title,
+                        platforms = listOf(r.platformSlug),
+                        releaseYear = null,
+                        coverUrl = r.coverUrl,
+                        rarity = r.rarity,
+                    )
+                    GameCard(
+                        game = previewGame,
+                        platformSlug = r.platformSlug,
+                        edition = r.edition,
+                    )
+                    Text(
+                        text = "Identified as: ${r.title}",
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    Text(
+                        text = listOfNotNull(
+                            r.platformName ?: r.platformSlug,
+                            r.region,
+                            r.edition,
+                        ).joinToString(" · "),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "Rarity: ${r.rarity}  ·  Confidence: ${(r.confidence * 100).toInt()}%",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (r.reasoning.isNotBlank()) {
+                        Text(
+                            text = r.reasoning,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    if (r.gameId == null) {
+                        Text(
+                            text = "Note: this title isn't in our catalog yet. Set up IGDB credentials or add it manually.",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
                 state.error != null -> {
                     Text(
                         text = state.error.orEmpty(),
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
+            }
+
+            val canConfirm = when (state.mode) {
+                ScanMode.CONSOLE -> state.recognized?.consoleModelId != null
+                ScanMode.GAME -> state.recognizedGame?.gameId != null
             }
 
             Row(
@@ -121,30 +174,42 @@ fun ScanConfirmScreen(
                 }
                 Button(
                     onClick = { viewModel.confirmAndAdd { onConfirmed() } },
-                    enabled = state.recognized?.consoleModelId != null && !state.saving,
+                    enabled = canConfirm && !state.saving,
                     modifier = Modifier.weight(1f),
                 ) {
                     Text(if (state.saving) "Saving…" else "Add to collection")
                 }
             }
 
-            // Sample preview when no recognition exists yet (debug aid).
-            if (state.recognized == null && !state.recognizing) {
+            if (state.recognized == null && state.recognizedGame == null && !state.recognizing) {
                 Text(
                     text = "Preview:",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(top = 24.dp),
                 )
-                ConsoleCard(
-                    consoleModel = ConsoleModelDto(
-                        id = "demo",
-                        slug = "playstation-5",
-                        name = "PlayStation 5",
-                        manufacturer = "Sony",
-                        year = 2020,
-                        rarity = Rarity.RARE,
-                    ),
-                )
+                when (state.mode) {
+                    ScanMode.CONSOLE -> ConsoleCard(
+                        consoleModel = ConsoleModelDto(
+                            id = "demo",
+                            slug = "playstation-5",
+                            name = "PlayStation 5",
+                            manufacturer = "Sony",
+                            year = 2020,
+                            rarity = Rarity.RARE,
+                        ),
+                    )
+                    ScanMode.GAME -> GameCard(
+                        game = GameDto(
+                            id = "demo",
+                            slug = "the-legend-of-zelda-breath-of-the-wild",
+                            title = "The Legend of Zelda: Breath of the Wild",
+                            platforms = listOf("switch"),
+                            releaseYear = 2017,
+                            rarity = Rarity.RARE,
+                        ),
+                        platformSlug = "switch",
+                    )
+                }
             }
         }
     }

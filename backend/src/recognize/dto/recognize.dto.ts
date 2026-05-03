@@ -42,3 +42,47 @@ export class RecognizeResponseDto {
   })
   details!: Record<string, unknown>;
 }
+
+export class RecognizeGameResponseDto {
+  @ApiProperty({ example: 'The Legend of Zelda: Breath of the Wild' })
+  title!: string;
+
+  @ApiProperty({ example: 'the-legend-of-zelda-breath-of-the-wild' })
+  slug!: string;
+
+  @ApiProperty({
+    example: 'cuid-or-uuid',
+    description: 'Catalog id if the title was matched (or imported via IGDB), null otherwise.',
+  })
+  gameId!: string | null;
+
+  @ApiProperty({ example: 'https://images.igdb.com/.../cover.jpg', required: false })
+  coverUrl!: string | null;
+
+  @ApiProperty({ example: 'switch' })
+  platformSlug!: string;
+
+  @ApiProperty({ example: 'Nintendo Switch', required: false })
+  platformName?: string;
+
+  @ApiProperty({ example: 'PAL', required: false })
+  region?: string;
+
+  @ApiProperty({ example: "Collector's Edition", required: false })
+  edition?: string;
+
+  @ApiProperty({ example: 'COMMON' })
+  rarity!: 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC' | 'LEGENDARY';
+
+  @ApiProperty({ example: 0.92 })
+  confidence!: number;
+
+  @ApiProperty({ example: 'Cover art with Link riding a horse, Switch cartridge logo on spine.' })
+  reasoning!: string;
+
+  @ApiProperty({
+    description: 'Free-form notes (kind: disc/cartridge/box, raw vision output).',
+    example: { kind: 'cartridge' },
+  })
+  details!: Record<string, unknown>;
+}

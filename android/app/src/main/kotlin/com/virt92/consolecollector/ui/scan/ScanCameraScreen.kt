@@ -70,10 +70,15 @@ fun ScanCameraScreen(
         }
     }
 
+    val title = when (state.mode) {
+        ScanMode.GAME -> "Scan a game"
+        ScanMode.CONSOLE -> "Scan a console"
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Scan a console") },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

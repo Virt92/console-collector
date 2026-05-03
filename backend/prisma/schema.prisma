@@ -35,6 +35,7 @@ model User {
   updatedAt    DateTime @updatedAt
 
   collection      CollectionItem[]
+  gameItems       GameItem[]
   achievements    UserAchievement[]
   shareTokens     ShareToken[]
 }
@@ -94,6 +95,51 @@ model UserAchievement {
   achievement Achievement @relation(fields: [achievementId], references: [id])
 
   @@unique([userId, achievementId])
+}
+
+model Game {
+  id           String   @id @default(uuid())
+  slug         String   @unique
+  title        String
+  // External IGDB id, optional.
+  igdbId       Int?     @unique
+  // Platform slugs the game is available on (e.g. ["ps4","xbox-one","pc"]).
+  platforms    String[]
+  releaseYear  Int?
+  publisher    String?
+  developer    String?
+  genres       String[]
+  coverUrl     String?
+  summary      String?
+  rarity       Rarity   @default(COMMON)
+  // Free-form aliases / alternate titles the vision model might return.
+  aliases      String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownerships GameItem[]
+}
+
+model GameItem {
+  id           String     @id @default(uuid())
+  userId       String
+  gameId       String
+  // Which platform's edition the user owns.
+  platformSlug String
+  edition      String?
+  region       String?
+  status       ItemStatus @default(OWNED)
+  notes        String?
+  photos       String[]
+  recognized   Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id])
+
+  @@index([userId])
+  @@index([gameId])
 }
 
 model ShareToken {

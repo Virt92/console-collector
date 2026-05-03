@@ -7,11 +7,17 @@ import com.virt92.consolecollector.data.model.CollectionItemDto
 import com.virt92.consolecollector.data.model.CollectionStats
 import com.virt92.consolecollector.data.model.ConsoleModelDto
 import com.virt92.consolecollector.data.model.CreateCollectionItemRequest
+import com.virt92.consolecollector.data.model.CreateGameItemRequest
+import com.virt92.consolecollector.data.model.GameDto
+import com.virt92.consolecollector.data.model.GameItemDto
+import com.virt92.consolecollector.data.model.GameStats
 import com.virt92.consolecollector.data.model.LoginRequest
+import com.virt92.consolecollector.data.model.RecognizeGameResponse
 import com.virt92.consolecollector.data.model.RecognizeRequest
 import com.virt92.consolecollector.data.model.RecognizeResponse
 import com.virt92.consolecollector.data.model.RegisterRequest
 import com.virt92.consolecollector.data.model.ShareLinkResponse
+import com.virt92.consolecollector.data.model.UpdateGameItemRequest
 import com.virt92.consolecollector.data.model.UpdateProfileRequest
 import com.virt92.consolecollector.data.model.UserDto
 
@@ -71,4 +77,25 @@ class CollectionRepository(
     suspend fun shareCollection(): ShareLinkResponse = api.shareCollection()
 
     suspend fun shareItem(itemId: String): ShareLinkResponse = api.shareItem(itemId)
+
+    suspend fun listGames(platform: String? = null, search: String? = null): List<GameDto> =
+        api.listGames(platform = platform, search = search)
+
+    suspend fun recognizeGame(images: List<String>): RecognizeGameResponse =
+        api.recognizeGame(RecognizeRequest(images))
+
+    suspend fun listGameItems(): List<GameItemDto> = api.listGameItems()
+
+    suspend fun gameStats(): GameStats = api.gameStats()
+
+    suspend fun addGameItem(request: CreateGameItemRequest): GameItemDto =
+        api.addGameItem(request)
+
+    suspend fun updateGameItem(id: String, request: UpdateGameItemRequest): GameItemDto =
+        api.updateGameItem(id, request)
+
+    suspend fun deleteGameItem(id: String) = api.deleteGameItem(id)
+
+    suspend fun shareGameItem(itemId: String): ShareLinkResponse =
+        api.shareGameItem(itemId)
 }

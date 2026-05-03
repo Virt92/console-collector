@@ -5,12 +5,18 @@ import com.virt92.consolecollector.data.model.CollectionItemDto
 import com.virt92.consolecollector.data.model.CollectionStats
 import com.virt92.consolecollector.data.model.ConsoleModelDto
 import com.virt92.consolecollector.data.model.CreateCollectionItemRequest
+import com.virt92.consolecollector.data.model.CreateGameItemRequest
+import com.virt92.consolecollector.data.model.GameDto
+import com.virt92.consolecollector.data.model.GameItemDto
+import com.virt92.consolecollector.data.model.GameStats
 import com.virt92.consolecollector.data.model.LoginRequest
+import com.virt92.consolecollector.data.model.RecognizeGameResponse
 import com.virt92.consolecollector.data.model.RecognizeRequest
 import com.virt92.consolecollector.data.model.RecognizeResponse
 import com.virt92.consolecollector.data.model.RegisterRequest
 import com.virt92.consolecollector.data.model.ShareLinkResponse
 import com.virt92.consolecollector.data.model.UpdateCollectionItemRequest
+import com.virt92.consolecollector.data.model.UpdateGameItemRequest
 import com.virt92.consolecollector.data.model.UpdateProfileRequest
 import com.virt92.consolecollector.data.model.UserDto
 import retrofit2.http.Body
@@ -66,4 +72,34 @@ interface ApiService {
 
     @POST("api/share/item/{itemId}")
     suspend fun shareItem(@Path("itemId") itemId: String): ShareLinkResponse
+
+    @GET("api/games")
+    suspend fun listGames(
+        @Query("platform") platform: String? = null,
+        @Query("search") search: String? = null,
+    ): List<GameDto>
+
+    @POST("api/recognize/game")
+    suspend fun recognizeGame(@Body body: RecognizeRequest): RecognizeGameResponse
+
+    @GET("api/collection/games")
+    suspend fun listGameItems(): List<GameItemDto>
+
+    @GET("api/collection/games/stats")
+    suspend fun gameStats(): GameStats
+
+    @POST("api/collection/games")
+    suspend fun addGameItem(@Body body: CreateGameItemRequest): GameItemDto
+
+    @PATCH("api/collection/games/{id}")
+    suspend fun updateGameItem(
+        @Path("id") id: String,
+        @Body body: UpdateGameItemRequest,
+    ): GameItemDto
+
+    @DELETE("api/collection/games/{id}")
+    suspend fun deleteGameItem(@Path("id") id: String)
+
+    @POST("api/share/game-item/{itemId}")
+    suspend fun shareGameItem(@Path("itemId") itemId: String): ShareLinkResponse
 }
