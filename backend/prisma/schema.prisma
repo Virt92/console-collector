@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum ItemStatus {
+  OWNED
+  FOR_SALE
+  FOR_TRADE
+  GIVING_AWAY
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  city         String?
+  country      String?
+  avatarUrl    String?
+  bio          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  collection      CollectionItem[]
+  achievements    UserAchievement[]
+  shareTokens     ShareToken[]
+}
+
+model ConsoleModel {
+  id           String  @id @default(uuid())
+  slug         String  @unique
+  name         String
+  manufacturer String
+  year         Int
+  region       String?
+  rarity       Rarity  @default(COMMON)
+  imageUrl     String?
+  description  String?
+  // Free-form aliases / nicknames the vision model may return.
+  aliases      String[]
+
+  collectionItems CollectionItem[]
+}
+
+model CollectionItem {
+  id             String     @id @default(uuid())
+  userId         String
+  consoleModelId String
+  status         ItemStatus @default(OWNED)
+  notes          String?
+  // URLs of user-uploaded photos used during scanning.
+  photos         String[]
+  recognized     Json?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  consoleModel ConsoleModel @relation(fields: [consoleModelId], references: [id])
+
+  @@index([userId])
+  @@index([consoleModelId])
+}
+
+model Achievement {
+  id          String  @id @default(uuid())
+  key         String  @unique
+  name        String
+  description String
+  iconUrl     String?
+
+  unlockedBy UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+}
+
+model ShareToken {
+  id        String   @id @default(uuid())
+  userId    String
+  // "collection" or "item:<itemId>"
+  scope     String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
