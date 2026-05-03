@@ -76,7 +76,10 @@ export class RecognizeService {
   }
 
   private parseVisionOutput(raw: string): VisionResult {
-    const stripped = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+    const stripped = raw
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '');
     const start = stripped.indexOf('{');
     const end = stripped.lastIndexOf('}');
     if (start < 0 || end < start) {
@@ -116,13 +119,7 @@ export class RecognizeService {
   }
 
   private normalizeRarity(input: unknown): VisionResult['rarity'] {
-    const allowed: VisionResult['rarity'][] = [
-      'COMMON',
-      'UNCOMMON',
-      'RARE',
-      'EPIC',
-      'LEGENDARY',
-    ];
+    const allowed: VisionResult['rarity'][] = ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'];
     const upper = String(input ?? '').toUpperCase();
     return (allowed as string[]).includes(upper) ? (upper as VisionResult['rarity']) : 'COMMON';
   }

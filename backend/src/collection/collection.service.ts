@@ -51,9 +51,7 @@ export class CollectionService {
         status: this.toStatus(dto.status),
         notes: dto.notes,
         photos: dto.photos ?? [],
-        recognized: dto.recognized
-          ? (dto.recognized as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
+        recognized: dto.recognized ? (dto.recognized as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
       include: { consoleModel: true },
     });
